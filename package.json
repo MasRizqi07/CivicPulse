@@ -1,0 +1,54 @@
+{
+  "name": "compfest-ui-software-eng",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:seed": "prisma db seed",
+    "db:studio": "prisma studio"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1075.0",
+    "@aws-sdk/s3-request-presigner": "^3.1075.0",
+    "@hookform/resolvers": "^5.4.0",
+    "@prisma/client": "^6.5.0",
+    "@sentry/nextjs": "^9.9.0",
+    "@tanstack/react-query": "^5.101.1",
+    "better-auth": "^1.6.20",
+    "bullmq": "^5.45.0",
+    "clsx": "^2.1.1",
+    "ioredis": "^5.6.0",
+    "lucide-react": "^0.468.0",
+    "next": "16.1.0",
+    "pino": "^9.6.0",
+    "pino-pretty": "^13.0.0",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
+    "react-hook-form": "^7.80.0",
+    "recharts": "^3.9.0",
+    "tailwind-merge": "^2.6.1",
+    "zod": "^3.24.2",
+    "zustand": "^5.0.14"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.14",
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3",
+    "autoprefixer": "^10.4.21",
+    "eslint": "^9.24.0",
+    "eslint-config-next": "16.1.0",
+    "postcss": "^8.5.6",
+    "prisma": "^6.5.0",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.8.2"
+  }
+}

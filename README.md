@@ -12,6 +12,7 @@
 ## ✨ Key Features
 
 ### For Citizens
+
 - 📝 Create detailed public service reports with location
 - 📱 Track report status in real-time
 - 💬 Add comments and attachments to reports
@@ -19,12 +20,14 @@
 - 🔔 Receive status update notifications
 
 ### For Officers
+
 - 📥 Manage and assign reports within your agency
 - 🔄 Update report status (Draft → Submitted → Assigned → In Progress → Resolved → Closed)
 - 💬 Communicate with citizens via comments
 - 📋 View report history and audit trails
 
 ### For Administrators
+
 - 🏛️ Manage government agencies
 - 👥 Administer users and roles
 - 📊 View comprehensive reports and analytics
@@ -33,6 +36,7 @@
 ## 🛠️ Tech Stack
 
 ### Frontend
+
 - **Framework**: Next.js 16 with App Router (React 19)
 - **Language**: TypeScript 5.8
 - **Styling**: Tailwind CSS 3.4
@@ -42,6 +46,7 @@
 - **Data Fetching**: TanStack Query
 
 ### Backend & Infrastructure
+
 - **API**: Next.js Route Handlers
 - **ORM**: Prisma 6.5
 - **Database**: PostgreSQL 16
@@ -52,6 +57,7 @@
 - **Error Tracking**: Sentry
 
 ### Development Tools
+
 - **Package Manager**: npm
 - **Linting**: ESLint
 - **Formatting**: Prettier (via Next.js config)
@@ -71,21 +77,27 @@ Before you begin, ensure you have these installed:
 ### Installation
 
 1. **Clone or navigate to the project**
+
    ```bash
    cd "d:\MY CODE\TRAE IDE\COMPFEST-UI-SOFTWARE-ENGINEERING\CivicPulse"
    ```
 
 2. **Install dependencies**
+
    ```bash
    npm install
    ```
 
 3. **Set up environment variables**
+
    - Copy the example file:
+
      ```bash
      cp .env.example .env
      ```
+
    - Update `.env` with your configuration:
+
      ```env
      # Database
      DATABASE_URL="postgresql://postgres:your-password@localhost:5432/civicpulse?schema=public"
@@ -108,6 +120,7 @@ Before you begin, ensure you have these installed:
      ```
 
 4. **Set up the database**
+
    ```bash
    # Generate Prisma Client
    npm run db:generate
@@ -120,11 +133,13 @@ Before you begin, ensure you have these installed:
    ```
 
 5. **Run the development server**
+
    ```bash
    npm run dev
    ```
 
 6. **Open the application**
+
    Navigate to `http://localhost:3000` in your browser.
 
 ## 👤 Default Users (from Seed)
@@ -132,7 +147,7 @@ Before you begin, ensure you have these installed:
 Use these credentials to test different roles:
 
 | Email | Password | Role |
-|-------|----------|------|
+| ------- | ---------- | ------ |
 | `admin@civicpulse.id` | `password123` | SUPER_ADMIN |
 | `officer@civicpulse.id` | `password123` | OFFICER |
 | `citizen@civicpulse.id` | `password123` | CITIZEN |
@@ -140,6 +155,7 @@ Use these credentials to test different roles:
 ## 📁 Project Structure
 
 ### Root Directory
+
 ```
 CivicPulse/
 ├── prisma/                   # Database layer
@@ -164,6 +180,7 @@ CivicPulse/
 ### Source Code (`src/`)
 
 #### `src/app/` - Next.js App Router
+
 ```
 app/
 ├── api/                      # API routes
@@ -191,7 +208,9 @@ app/
 ```
 
 #### `src/modules/` - Feature Modules
+
 Each module follows a consistent pattern:
+
 ```
 modules/
 ├── reports/
@@ -212,6 +231,7 @@ modules/
 ```
 
 #### `src/server/` - Server Utilities
+
 ```
 server/
 ├── auth.ts                   # Better Auth configuration
@@ -223,6 +243,7 @@ server/
 ```
 
 #### `src/lib/` - Shared Utilities
+
 ```
 lib/
 ├── logger.ts                 # Pino logger configuration
@@ -241,7 +262,7 @@ lib/
 
 ### Data Flow
 
-```
+```text
 User Action → Next.js Page → API Route → Service → Repository → Database
               ↓
            [Optional: Queue Job → Worker → Notification]
@@ -368,8 +389,10 @@ Contributions are welcome! Please follow these steps:
 6. Open a Pull Request
 
 ### Commit Message Format
+
 Follow conventional commits:
-```
+
+```text
 <type>(<scope>): <description>
 
 Types:

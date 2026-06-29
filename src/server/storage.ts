@@ -1,5 +1,6 @@
 import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import db from "./db";
 
 // Initialize S3 client
 const s3Client = new S3Client({
@@ -38,6 +39,60 @@ export const storage = {
     });
 
     return await getSignedUrl(s3Client, command, { expiresIn });
+  },
+
+  /**
+   * Get a signed URL for an attachment with authorization check
+   * Verifies the user has access to the report before generating the URL
+   */
+  async getSignedAttachmentUrl(
+    attachmentId: string,
+    user: { id: string; role: string; agencyId: string | null },
+    expiresIn: number = 900 // 15 minutes default
+  ): Promise<string> {
+    // Fetch attachment with report to check authorization
+    const attachment = await db.reportAttachment.findUnique({
+      where: { id: attachmentId },
+      include: {
+        report: {
+          select: {
+            id: true,
+            citizenId: true,
+            agencyId: true,
+          },
+        },
+      },
+    });
+
+    if (!attachment) {
+      throw new Error("Attachment not found");
+    }
+
+    const report = attachment.report;
+
+    // Authorization check
+    if (user.role === "SUPER_ADMIN") {
+      // Admin can access all
+    } else if (user.role === "CITIZEN") {
+      // Citizens can only access their own reports
+      if (report.citizenId !== user.id) {
+        throw new Error("You do not have access to this attachment");
+      }
+    } else if (user.role === "OFFICER") {
+      // Officers can access reports in their agency
+      if (!user.agencyId || report.agencyId !== user.agencyId) {
+        throw new Error("You do not have access to this attachment");
+      }
+    } else {
+      throw new Error("You do not have access to this attachment");
+    }
+
+    // Extract key from fileUrl
+    // URL format: http://localhost:9000/bucket/key
+    const urlParts = attachment.fileUrl.split("/");
+    const key = urlParts.slice(-2).join("/"); // bucket/key
+
+    return await this.getPresignedUrl(key, expiresIn);
   },
 
   async deleteFile(key: string): Promise<void> {

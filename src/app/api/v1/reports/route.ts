@@ -5,6 +5,7 @@ import { createReportSchema } from "@/modules/reports/validators/create-report.s
 import logger from "@/lib/logger";
 import { auth } from "@/server/auth";
 import { getReportWhereForUser, ForbiddenError } from "@/server/authz";
+import { checkRateLimit, getRateLimitHeaders } from "@/server/rate-limiter";
 
 export async function GET(request: NextRequest) {
   try {
@@ -70,12 +71,31 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Only citizens can create reports" }, { status: 403 });
     }
 
+    // Check rate limit for report creation (per user)
+    const rateLimitResult = await checkRateLimit(user.id, "reportCreate");
+
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { error: "Too many report submissions. Please try again later." },
+        { 
+          status: 429,
+          headers: getRateLimitHeaders(rateLimitResult)
+        }
+      );
+    }
+
     const body = await request.json();
     const validated = createReportSchema.parse(body);
 
     const report = await createReportService.execute(user.id, validated);
 
-    return NextResponse.json({ data: report }, { status: 201 });
+    const response = NextResponse.json({ data: report }, { status: 201 });
+    // Add rate limit headers
+    Object.entries(getRateLimitHeaders(rateLimitResult)).forEach(([key, value]) => {
+      response.headers.set(key, value);
+    });
+    
+    return response;
   } catch (error: any) {
     logger.error({ error }, "Error creating report");
     if (error.name === "ZodError") {

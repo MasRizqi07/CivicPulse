@@ -123,8 +123,9 @@ export default function NewReportPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-2">Category</label>
                 <select
+                  id="category"
                   name="category"
                   value={formData.category}
                   onChange={handleChange}
@@ -138,8 +139,9 @@ export default function NewReportPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Priority</label>
+                <label htmlFor="priority" className="block text-sm font-medium text-gray-700 mb-2">Priority</label>
                 <select
+                  id="priority"
                   name="priority"
                   value={formData.priority}
                   onChange={handleChange}

@@ -6,6 +6,7 @@ import logger from "@/lib/logger";
 import { auth } from "@/server/auth";
 import { getReportWhereForUser, ForbiddenError } from "@/server/authz";
 import { checkRateLimit, getRateLimitHeaders } from "@/server/rate-limiter";
+import { createError, handleError, errorCodes } from "@/lib/errors";
 
 export async function GET(request: NextRequest) {
   try {
@@ -14,7 +15,10 @@ export async function GET(request: NextRequest) {
     });
 
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        createError(errorCodes.UNAUTHORIZED, 'Authentication required'),
+        { status: 401 }
+      );
     }
 
     const user = session.user as any;
@@ -24,21 +28,47 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(50, parseInt(searchParams.get("limit") || "10"));
     const skip = (page - 1) * limit;
     const status = searchParams.get("status");
+    const category = searchParams.get("category");
+    const agencyId = searchParams.get("agencyId");
 
     // Get base where clause filtered by user's role
     const where = getReportWhereForUser(user);
 
     // Apply additional filters
     if (status) (where as any).status = status;
+    if (category) (where as any).category = category;
+    
+    // Agency ID filter - only allowed for officers/admins
+    if (agencyId) {
+      if (user.role === "CITIZEN") {
+        return NextResponse.json(
+          createError(errorCodes.FORBIDDEN, 'Citizens cannot filter by agency'),
+          { status: 403 }
+        );
+      }
+      // Officers can only filter their own agency
+      if (user.role === "OFFICER" && user.agencyId !== agencyId) {
+        return NextResponse.json(
+          createError(errorCodes.FORBIDDEN, 'Cannot filter other agencies'),
+          { status: 403 }
+        );
+      }
+      (where as any).agencyId = agencyId;
+    }
+
+    // Filter out null values from where clause
+    const finalWhere = Object.fromEntries(
+      Object.entries(where).filter(([_, v]) => v !== null && v !== undefined)
+    );
 
     const [reports, total] = await Promise.all([
-      reportRepository.findAll(where, {
+      reportRepository.findAll(finalWhere, {
         skip,
         take: limit,
         orderBy: { createdAt: "desc" },
         include: { citizen: true, agency: true, location: true },
       }),
-      reportRepository.count(where),
+      reportRepository.count(finalWhere),
     ]);
 
     return NextResponse.json({
@@ -48,9 +78,12 @@ export async function GET(request: NextRequest) {
   } catch (error: any) {
     logger.error({ error }, "Error fetching reports");
     if (error instanceof ForbiddenError) {
-      return NextResponse.json({ error: error.message }, { status: 403 });
+      return NextResponse.json(
+        createError(errorCodes.FORBIDDEN, error.message),
+        { status: 403 }
+      );
     }
-    return NextResponse.json({ error: "Failed to fetch reports" }, { status: 500 });
+    return NextResponse.json(handleError(error), { status: 500 });
   }
 }
 
@@ -61,14 +94,20 @@ export async function POST(request: NextRequest) {
     });
 
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        createError(errorCodes.UNAUTHORIZED, 'Authentication required'),
+        { status: 401 }
+      );
     }
 
     const user = session.user as any;
 
     // Only citizens can create reports
     if (user.role !== "CITIZEN") {
-      return NextResponse.json({ error: "Only citizens can create reports" }, { status: 403 });
+      return NextResponse.json(
+        createError(errorCodes.FORBIDDEN, 'Only citizens can create reports'),
+        { status: 403 }
+      );
     }
 
     // Check rate limit for report creation (per user)
@@ -76,7 +115,7 @@ export async function POST(request: NextRequest) {
 
     if (!rateLimitResult.success) {
       return NextResponse.json(
-        { error: "Too many report submissions. Please try again later." },
+        createError(errorCodes.RATE_LIMIT_EXCEEDED, 'Too many report submissions. Please try again later.'),
         { 
           status: 429,
           headers: getRateLimitHeaders(rateLimitResult)
@@ -99,8 +138,15 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     logger.error({ error }, "Error creating report");
     if (error.name === "ZodError") {
-      return NextResponse.json({ error: "Validation failed", details: error.errors }, { status: 400 });
+      const fields: Record<string, string> = {};
+      error.errors.forEach((err: any) => {
+        fields[err.path.join('.')] = err.message;
+      });
+      return NextResponse.json(
+        createError(errorCodes.VALIDATION_ERROR, 'Validation failed', fields),
+        { status: 400 }
+      );
     }
-    return NextResponse.json({ error: "Failed to create report" }, { status: 500 });
+    return NextResponse.json(handleError(error), { status: 500 });
   }
 }

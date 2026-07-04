@@ -1,9 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auditLogRepository } from "@/modules/audit-logs/repositories/audit-log.repository";
+import db from "@/server/db";
+import { auth } from "@/server/auth";
 import logger from "@/lib/logger";
 
 export async function GET(request: NextRequest) {
   try {
+    const session = await auth.api.getSession({
+      headers: request.headers,
+    });
+
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (session.user.role !== "SUPER_ADMIN") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const searchParams = request.nextUrl.searchParams;
     const resourceType = searchParams.get("resourceType");
     const resourceId = searchParams.get("resourceId");
@@ -11,11 +24,21 @@ export async function GET(request: NextRequest) {
 
     let logs;
     if (resourceType && resourceId) {
-      logs = await auditLogRepository.findByResource(resourceType, resourceId);
+      logs = await db.auditLog.findMany({
+        where: { resourceType, resourceId },
+        orderBy: { createdAt: "desc" },
+        include: { actor: true },
+      });
     } else if (actorId) {
-      logs = await auditLogRepository.findByActor(actorId);
+      logs = await db.auditLog.findMany({
+        where: { actorId },
+        orderBy: { createdAt: "desc" },
+      });
     } else {
-      logs = await auditLogRepository.findAll(undefined, { orderBy: { createdAt: "desc" }, take: 100 });
+      logs = await db.auditLog.findMany({
+        orderBy: { createdAt: "desc" },
+        take: 100,
+      });
     }
 
     return NextResponse.json({ data: logs });

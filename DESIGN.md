@@ -461,5 +461,89 @@ docs(readme): update setup guide
 - Input validation with Zod
 - SQL injection protection via Prisma
 - XSS protection via React's escaping
-- Rate limiting (future)
+- Rate limiting on sensitive endpoints
 - CORS configuration
+- Signed URLs for attachment access control
+- Object-level authorization for all resources
+
+---
+
+## Data Privacy & Retention
+
+### PII Collection
+
+CivicPulse collects the following Personally Identifiable Information (PII):
+
+| Data Type | Purpose | Storage Location | Retention Period |
+|-----------|---------|------------------|----------------|
+| Full Name | User identification | `User.fullName` | 7 years after account deletion |
+| Email Address | Authentication & notifications | `User.email` | 7 years after account deletion |
+| Phone Number | Optional contact | `User.phone` | 7 years after account deletion |
+| Location Data | Report location | `Location` (lat/long, address) | 7 years after report closure |
+| IP Address | Security logging | `AuditLog.ipAddress` | 90 days |
+
+### Data Retention Policy
+
+#### Reports
+- **Active Reports**: Retained indefinitely while in active status (DRAFT, SUBMITTED, ASSIGNED, IN_PROGRESS)
+- **Closed Reports**: Retained for 7 years after closure date
+- **Rejected Reports**: Retained for 1 year after rejection date
+- **Archived Reports**: Retained for 7 years after archival date
+
+#### User Accounts
+- **Active Users**: Retained indefinitely while account is active
+- **Deleted Accounts**: 
+  - PII (name, email, phone) retained for 7 years after deletion for compliance
+  - User data anonymized after 7 years (email anonymized, name removed)
+  - Reports remain linked to anonymized user ID for historical records
+
+#### Audit Logs
+- **Security Events**: Retained for 1 year
+- **Compliance Events**: Retained for 7 years
+- **Routine Operations**: Retained for 90 days
+
+#### Attachments
+- **File Storage**: Retained according to parent report's retention policy
+- **Signed URLs**: Expire after 15 minutes (no long-term storage of URLs)
+
+### Data Deletion Process
+
+#### User-Initiated Deletion
+1. User requests account deletion via settings
+2. System marks user account as deleted (`deletedAt` timestamp)
+3. User's PII is anonymized after 7 years
+4. Reports remain with anonymized user reference
+5. All sessions and tokens are immediately invalidated
+
+#### Automatic Data Purging
+1. Reports older than 7 years (closed/archived) are automatically archived
+2. Audit logs older than retention period are automatically purged
+3. Soft-deleted records older than 7 years are permanently removed
+
+#### Right to be Forgotten
+Users may request complete data deletion:
+- All PII is immediately anonymized
+- Reports are anonymized (user replaced with "Deleted User")
+- Attachments are deleted from storage
+- Process completes within 30 days per GDPR requirements
+
+### Compliance Notes
+
+#### GDPR (General Data Protection Regulation)
+- **Data Minimization**: Only collect necessary PII
+- **Right to Access**: Users can export their data
+- **Right to Rectification**: Users can correct their data
+- **Right to Erasure**: Users can request complete deletion
+- **Data Portability**: Users can export their data in machine-readable format
+
+#### Local Regulations
+- **Indonesia**: Complies with PDPA (Personal Data Protection Act)
+- **Data Localization**: Database hosted in compliant region
+- **Cross-Border Transfer**: No cross-border data transfers without consent
+
+#### Security Measures
+- **Encryption**: All PII encrypted at rest and in transit
+- **Access Control**: Role-based access to PII
+- **Audit Trail**: All PII access logged
+- **Backup Security**: Encrypted backups with access controls
+- **Breach Notification**: Data breaches reported within 72 hours

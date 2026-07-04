@@ -1,19 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
-import { notificationRepository } from "@/modules/notifications/repositories/notification.repository";
-import { markNotificationReadService } from "@/modules/notifications/services/mark-notification-read.service";
+import db from "@/server/db";
+import { auth } from "@/server/auth";
 import logger from "@/lib/logger";
 
 export async function GET(request: NextRequest) {
   try {
-    const searchParams = request.nextUrl.searchParams;
-    const userId = searchParams.get("userId");
-    if (!userId) {
-      return NextResponse.json({ error: "userId is required" }, { status: 400 });
+    const session = await auth.api.getSession({
+      headers: request.headers,
+    });
+
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const searchParams = request.nextUrl.searchParams;
     const unreadOnly = searchParams.get("unreadOnly") === "true";
-    const notifications = await notificationRepository.findByUserId(userId, unreadOnly);
-    const unreadCount = await notificationRepository.countUnread(userId);
+    const userId = session.user.id;
+    const notifications = await db.notification.findMany({
+      where: {
+        userId,
+        ...(unreadOnly ? { isRead: false } : {}),
+      },
+      orderBy: { createdAt: "desc" },
+    });
+    const unreadCount = await db.notification.count({
+      where: { userId, isRead: false },
+    });
 
     return NextResponse.json({ data: notifications, meta: { unreadCount } });
   } catch (error) {
@@ -24,9 +36,19 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { userId } = body;
-    await markNotificationReadService.markAllRead(userId);
+    const session = await auth.api.getSession({
+      headers: request.headers,
+    });
+
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const userId = session.user.id;
+    await db.notification.updateMany({
+      where: { userId, isRead: false },
+      data: { isRead: true },
+    });
     return NextResponse.json({ success: true });
   } catch (error) {
     logger.error({ error }, "Error marking notifications as read");

@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { attachmentRepository } from "@/modules/attachments/repositories/attachment.repository";
-import { createAttachmentService } from "@/modules/attachments/services/create-attachment.service";
+import db from "@/server/db";
 import { storage } from "@/server/storage";
 import { auth } from "@/server/auth";
+import { assertOwnerOrAgency, ForbiddenError } from "@/server/authz";
 import logger from "@/lib/logger";
 
 export async function GET(request: NextRequest) {
@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
         {
           id: session.user.id,
           role: session.user.role,
-          agencyId: session.user.agencyId,
+          agencyId: session.user.agencyId || null,
         }
       );
       return NextResponse.json({ data: { signedUrl } });
@@ -36,9 +36,24 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "reportId is required" }, { status: 400 });
     }
 
-    const attachments = await attachmentRepository.findByReport(reportId);
+    await assertOwnerOrAgency(
+      {
+        id: session.user.id,
+        role: session.user.role as any,
+        agencyId: session.user.agencyId || null,
+      },
+      reportId
+    );
+
+    const attachments = await db.reportAttachment.findMany({
+      where: { reportId },
+      orderBy: { createdAt: "desc" },
+    });
     return NextResponse.json({ data: attachments });
   } catch (error: any) {
+    if (error instanceof ForbiddenError) {
+      return NextResponse.json({ error: error.message }, { status: 403 });
+    }
     logger.error({ error }, "Error fetching attachments");
     const message = error.message || "Failed to fetch attachments";
     const status = error.message?.includes("access") ? 403 : 500;
@@ -64,29 +79,37 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "file and reportId are required" }, { status: 400 });
     }
 
+    await assertOwnerOrAgency(
+      {
+        id: session.user.id,
+        role: session.user.role as any,
+        agencyId: session.user.agencyId || null,
+      },
+      reportId
+    );
+
     const buffer = await file.arrayBuffer();
     const fileName = `${Date.now()}-${file.name}`;
     const filePath = `attachments/${fileName}`;
 
     const fileUrl = await storage.uploadFile(filePath, Buffer.from(buffer), file.type);
 
-    const attachment = await createAttachmentService.execute(
-      {
+    const attachment = await db.reportAttachment.create({
+      data: {
         reportId,
         fileName: file.name,
         fileUrl,
-        fileSize: file.size,
+        fileSize: BigInt(file.size),
         mimeType: file.type,
+        uploadedBy: session.user.id,
       },
-      {
-        id: session.user.id,
-        role: session.user.role,
-        agencyId: session.user.agencyId,
-      }
-    );
+    });
 
     return NextResponse.json({ data: attachment }, { status: 201 });
   } catch (error: any) {
+    if (error instanceof ForbiddenError) {
+      return NextResponse.json({ error: error.message }, { status: 403 });
+    }
     logger.error({ error }, "Error uploading attachment");
     const message = error.message || "Failed to upload attachment";
     const status = error.message?.includes("access") ? 403 : 500;

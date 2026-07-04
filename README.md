@@ -14,7 +14,7 @@
 ### For Citizens
 
 - 📝 Create detailed public service reports with location
-- 📱 Track report status in real-time
+- 📱 Track report status (refresh page for latest updates)
 - 💬 Add comments and attachments to reports
 - 📊 View dashboard with report statistics
 - 🔔 Receive status update notifications

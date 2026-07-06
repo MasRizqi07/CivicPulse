@@ -4,6 +4,7 @@ import { getReportService } from "@/modules/reports/services/get-report.service"
 import { updateReportService } from "@/modules/reports/services/update-report.service";
 import { updateReportStatusService } from "@/modules/reports/services/update-report-status.service";
 import { assignReportService } from "@/modules/reports/services/assign-report.service";
+import { getSessionUser, assertOwnerOrAgency, ForbiddenError, NotFoundError, UnauthorizedError } from "@/server/authz";
 import logger from "@/lib/logger";
 import type { ReportStatus } from "@prisma/client";
 
@@ -13,11 +14,29 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const report = await getReportService.execute(id);
+    const user = await getSessionUser(request);
+
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const report = await getReportService.execute(id, user);
     return NextResponse.json({ data: report });
   } catch (error) {
+    if (error instanceof UnauthorizedError) {
+      logger.warn({ error }, "Unauthorized access to report");
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    if (error instanceof ForbiddenError) {
+      logger.warn({ error }, "Forbidden access to report");
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    if (error instanceof NotFoundError) {
+      logger.warn({ error }, "Report not found");
+      return NextResponse.json({ error: "Report not found" }, { status: 404 });
+    }
     logger.error({ error }, "Error fetching report");
-    return NextResponse.json({ error: "Failed to fetch report" }, { status: 404 });
+    return NextResponse.json({ error: "Failed to fetch report" }, { status: 500 });
   }
 }
 
@@ -27,14 +46,32 @@ export async function PUT(
 ) {
   try {
     const { id } = await params;
+    const user = await getSessionUser(request);
+
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const body = await request.json();
     
-    // NOTE: In real app, actorId would come from auth session
+    // actorId is never read from body - identity comes from session
     const { actorId, ...data } = body;
     
-    const report = await updateReportService.execute(id, actorId || "system", data);
+    const report = await updateReportService.execute(id, user, data);
     return NextResponse.json({ data: report });
   } catch (error) {
+    if (error instanceof UnauthorizedError) {
+      logger.warn({ error }, "Unauthorized access to update report");
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    if (error instanceof ForbiddenError) {
+      logger.warn({ error }, "Forbidden access to update report");
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    if (error instanceof NotFoundError) {
+      logger.warn({ error }, "Report not found");
+      return NextResponse.json({ error: "Report not found" }, { status: 404 });
+    }
     logger.error({ error }, "Error updating report");
     return NextResponse.json({ error: "Failed to update report" }, { status: 500 });
   }
@@ -46,6 +83,12 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params;
+    const user = await getSessionUser(request);
+
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const body = await request.json();
     const { action, actorId, ...data } = body;
 
@@ -54,14 +97,14 @@ export async function PATCH(
     if (action === "update-status") {
       result = await updateReportStatusService.execute(
         id,
-        actorId || "system",
+        user,
         data.status as ReportStatus,
         data.note
       );
     } else if (action === "assign") {
       result = await assignReportService.execute(
         id,
-        actorId || "system",
+        user,
         data.officerId,
         data.note
       );
@@ -71,6 +114,18 @@ export async function PATCH(
 
     return NextResponse.json({ data: result });
   } catch (error) {
+    if (error instanceof UnauthorizedError) {
+      logger.warn({ error }, "Unauthorized access to patch report");
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    if (error instanceof ForbiddenError) {
+      logger.warn({ error }, "Forbidden access to patch report");
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    if (error instanceof NotFoundError) {
+      logger.warn({ error }, "Report not found");
+      return NextResponse.json({ error: "Report not found" }, { status: 404 });
+    }
     logger.error({ error }, "Error patching report");
     return NextResponse.json({ error: "Failed to update report" }, { status: 500 });
   }
@@ -82,9 +137,43 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
+    const user = await getSessionUser(request);
+
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Check authorization before delete
+    const { report } = await assertOwnerOrAgency(user, id);
+
+    // Only SUPER_ADMIN or the owning citizen (for draft reports) can delete
+    if (user.role !== "SUPER_ADMIN") {
+      if (user.role === "CITIZEN") {
+        // Citizens can only delete their own draft reports
+        if (!report || report.citizenId !== user.id || report.status !== "DRAFT") {
+          throw new ForbiddenError("Citizens can only delete their own draft reports");
+        }
+      } else {
+        // Officers cannot delete reports
+        throw new ForbiddenError("Officers cannot delete reports");
+      }
+    }
+
     await reportRepository.delete(id);
     return NextResponse.json({ success: true }, { status: 204 });
   } catch (error) {
+    if (error instanceof UnauthorizedError) {
+      logger.warn({ error }, "Unauthorized access to delete report");
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    if (error instanceof ForbiddenError) {
+      logger.warn({ error }, "Forbidden access to delete report");
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    if (error instanceof NotFoundError) {
+      logger.warn({ error }, "Report not found");
+      return NextResponse.json({ error: "Report not found" }, { status: 404 });
+    }
     logger.error({ error }, "Error deleting report");
     return NextResponse.json({ error: "Failed to delete report" }, { status: 500 });
   }

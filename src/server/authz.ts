@@ -1,5 +1,7 @@
 import db from "./db";
 import type { User, Role } from "@prisma/client";
+import type { NextRequest } from "next/server";
+import { auth } from "./auth";
 
 // Custom errors
 export class ForbiddenError extends Error {
@@ -13,6 +15,54 @@ export class NotFoundError extends Error {
   constructor(message: string = "Not Found") {
     super(message);
     this.name = "NotFoundError";
+  }
+}
+
+export class UnauthorizedError extends Error {
+  constructor(message: string = "Unauthorized") {
+    super(message);
+    this.name = "UnauthorizedError";
+  }
+}
+
+/**
+ * Resolve the authenticated user from the request session
+ * Returns null if no session exists
+ */
+export async function getSessionUser(request: NextRequest) {
+  const session = await auth.api.getSession({
+    headers: request.headers,
+  });
+
+  if (!session) {
+    return null;
+  }
+
+  return {
+    id: session.user.id,
+    role: session.user.role as Role,
+    agencyId: session.user.agencyId as string | null,
+  };
+}
+
+/**
+ * Require an authenticated session - throws UnauthorizedError if no session
+ */
+export async function requireSession(request: NextRequest) {
+  const user = await getSessionUser(request);
+  if (!user) {
+    throw new UnauthorizedError("Authentication required");
+  }
+  return user;
+}
+
+/**
+ * Require the user to have one of the specified roles
+ * Throws ForbiddenError if role doesn't match
+ */
+export function requireRole(user: { role: Role }, allowedRoles: Role[]) {
+  if (!allowedRoles.includes(user.role)) {
+    throw new ForbiddenError("You do not have permission to access this resource");
   }
 }
 

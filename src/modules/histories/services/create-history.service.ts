@@ -4,7 +4,7 @@ import type { CreateHistoryDTO } from "../types";
 
 export class CreateHistoryService {
   async execute(data: CreateHistoryDTO) {
-    logger.info("Creating report history", { reportId: data.reportId, newStatus: data.newStatus });
+    logger.info({ reportId: data.reportId, newStatus: data.newStatus }, "Creating report history");
 
     const history = await historyRepository.create({
       report: { connect: { id: data.reportId } },
@@ -14,7 +14,7 @@ export class CreateHistoryService {
       note: data.note,
     });
 
-    logger.info("Report history created successfully", { historyId: history.id });
+    logger.info({ historyId: history.id }, "Report history created successfully");
     return history;
   }
 }

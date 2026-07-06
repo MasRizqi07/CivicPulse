@@ -6,7 +6,7 @@ import type { Role } from "@prisma/client";
 
 export class CreateCommentService {
   async execute(data: CreateCommentDTO, user: { id: string; role: Role; agencyId: string | null }) {
-    logger.info("Creating comment", { reportId: data.reportId, userId: user.id });
+    logger.info({ reportId: data.reportId, userId: user.id }, "Creating comment");
 
     // Check authorization - user must have access to the report
     await assertOwnerOrAgency(user, data.reportId);
@@ -17,7 +17,7 @@ export class CreateCommentService {
       message: data.message,
     });
 
-    logger.info("Comment created successfully", { commentId: comment.id });
+    logger.info({ commentId: comment.id }, "Comment created successfully");
     return comment;
   }
 }

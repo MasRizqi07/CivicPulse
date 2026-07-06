@@ -28,9 +28,9 @@ export class UpdateReportStatusService {
     }
 
     // Validate status transition
-    if (!isTransitionAllowed(report.status, newStatus)) {
+    if (!isTransitionAllowed(report!.status, newStatus)) {
       throw new Error(
-        `Invalid status transition from ${report.status} to ${newStatus}`
+        `Invalid status transition from ${report!.status} to ${newStatus}`
       );
     }
 
@@ -40,8 +40,8 @@ export class UpdateReportStatusService {
         where: { id: reportId },
         data: {
           status: newStatus,
-          resolvedAt: newStatus === "RESOLVED" ? new Date() : report.resolvedAt,
-          closedAt: newStatus === "CLOSED" ? new Date() : report.closedAt,
+          resolvedAt: newStatus === "RESOLVED" ? new Date() : report!.resolvedAt,
+          closedAt: newStatus === "CLOSED" ? new Date() : report!.closedAt,
         },
         include: {
           citizen: true,
@@ -56,7 +56,7 @@ export class UpdateReportStatusService {
         data: {
           reportId,
           actorId: user.id,
-          oldStatus: report.status,
+          oldStatus: report!.status,
           newStatus,
           note,
         },
@@ -69,7 +69,7 @@ export class UpdateReportStatusService {
           action: "UPDATE_REPORT_STATUS",
           resourceType: "REPORT",
           resourceId: reportId,
-          oldValues: { status: report.status },
+          oldValues: { status: report!.status },
           newValues: { status: newStatus },
         },
       });

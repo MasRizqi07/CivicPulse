@@ -3,19 +3,19 @@ import logger from "@/lib/logger";
 
 export class GetLocationService {
   async execute(id: string) {
-    logger.info("Getting location", { locationId: id });
+    logger.info({ locationId: id }, "Getting location");
     return locationRepository.findById(id, {
       include: { reports: true },
-    });
+    } as any);
   }
 
   async getByCity(city: string) {
-    logger.info("Getting locations by city", { city });
+    logger.info({ city }, "Getting locations by city");
     return locationRepository.findByCity(city);
   }
 
   async getByProvince(province: string) {
-    logger.info("Getting locations by province", { province });
+    logger.info({ province }, "Getting locations by province");
     return locationRepository.findByProvince(province);
   }
 }

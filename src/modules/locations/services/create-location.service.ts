@@ -5,7 +5,7 @@ import { Prisma } from "@prisma/client";
 
 export class CreateLocationService {
   async execute(data: CreateLocationDTO) {
-    logger.info("Creating location", { address: data.address });
+    logger.info({ address: data.address }, "Creating location");
 
     const location = await locationRepository.create({
       latitude: new Prisma.Decimal(data.latitude),
@@ -17,7 +17,7 @@ export class CreateLocationService {
       postalCode: data.postalCode,
     });
 
-    logger.info("Location created successfully", { locationId: location.id });
+    logger.info({ locationId: location.id }, "Location created successfully");
     return location;
   }
 }

@@ -4,7 +4,7 @@ import type { CreateUserDTO } from "../types";
 
 export class CreateUserService {
   async execute(data: CreateUserDTO) {
-    logger.info("Creating user", { email: data.email });
+    logger.info({ email: data.email }, "Creating user");
 
     const user = await userRepository.create({
       email: data.email,
@@ -12,10 +12,10 @@ export class CreateUserService {
       fullName: data.fullName,
       phone: data.phone,
       role: data.role,
-      agencyId: data.agencyId,
+      ...(data.agencyId && { agency: { connect: { id: data.agencyId } } }),
     });
 
-    logger.info("User created successfully", { userId: user.id });
+    logger.info({ userId: user.id }, "User created successfully");
     return user;
   }
 }

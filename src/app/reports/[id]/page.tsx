@@ -26,6 +26,12 @@ interface Report {
     createdAt: string;
     actor: { fullName: string };
   }>;
+  comments?: Array<{
+    id: string;
+    message: string;
+    user: { fullName: string };
+    createdAt: string;
+  }>;
 }
 
 export default function ReportDetailPage() {

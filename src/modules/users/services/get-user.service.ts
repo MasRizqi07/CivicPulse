@@ -3,14 +3,14 @@ import logger from "@/lib/logger";
 
 export class GetUserService {
   async execute(id: string) {
-    logger.info("Getting user", { userId: id });
+    logger.info({ userId: id }, "Getting user");
     return userRepository.findById(id, {
       include: { agency: true, reports: true },
-    });
+    } as any);
   }
 
   async getByEmail(email: string) {
-    logger.info("Getting user by email", { email });
+    logger.info({ email }, "Getting user by email");
     return userRepository.findByEmail(email);
   }
 }

@@ -7,7 +7,7 @@ export class CreateAuditLogService {
     logger.info({ actorId: data.actorId, action: data.action }, "Creating audit log");
 
     const auditLog = await auditLogRepository.create({
-      actorId: data.actorId,
+      actor: { connect: { id: data.actorId } },
       action: data.action,
       resourceType: data.resourceType,
       resourceId: data.resourceId,

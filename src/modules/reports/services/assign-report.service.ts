@@ -40,7 +40,7 @@ export class AssignReportService {
     }
 
     // Check officer is in same agency as report
-    if (officer.agencyId !== report.agencyId) {
+    if (officer.agencyId !== report!.agencyId) {
       throw new ForbiddenError("Officer is not in the same agency as the report");
     }
 
@@ -60,7 +60,7 @@ export class AssignReportService {
         data: {
           reportId,
           actorId: user.id,
-          oldStatus: report.status,
+          oldStatus: report!.status,
           newStatus: "ASSIGNED",
           note: note || `Assigned to officer ${officerId}`,
         },
@@ -73,7 +73,7 @@ export class AssignReportService {
           action: "ASSIGN_REPORT",
           resourceType: "REPORT",
           resourceId: reportId,
-          oldValues: { assignedOfficerId: report.assignedOfficerId, status: report.status },
+          oldValues: { assignedOfficerId: report!.assignedOfficerId, status: report!.status },
           newValues: { assignedOfficerId: officerId, status: "ASSIGNED" },
         },
       });

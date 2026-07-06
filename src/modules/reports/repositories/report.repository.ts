@@ -1,5 +1,6 @@
 import db from "@/server/db";
 import type { Prisma } from "@prisma/client";
+import { ReportStatus } from "@prisma/client";
 import { BaseRepository } from "@/server/base-repository";
 
 export class ReportRepository extends BaseRepository<
@@ -43,7 +44,7 @@ export class ReportRepository extends BaseRepository<
     });
   }
 
-  async findByStatus(status: Prisma.ReportStatus, includeDeleted = false) {
+  async findByStatus(status: ReportStatus, includeDeleted = false) {
     return db.report.findMany({
       where: { status, ...(includeDeleted ? {} : { deletedAt: null }) },
       orderBy: { createdAt: "desc" },

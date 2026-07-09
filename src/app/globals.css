@@ -2,22 +2,50 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+    /* Brand */
+    --primary: #1D4ED8;
+    --primary-dark: #1E3A8A;
+    --primary-foreground: #FFFFFF;
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+    --accent: #F59E0B;
+    --accent-foreground: #1C1917;
+
+    /* Semantic status (maps directly to ReportStatus enum) */
+    --status-draft: #64748B;
+    --status-submitted: #0EA5E9;
+    --status-assigned: #F59E0B;
+    --status-in-progress: #D97706;
+    --status-resolved: #16A34A;
+    --status-closed: #15803D;
+    --status-rejected: #DC2626;
+
+    /* Neutrals (slate scale) */
+    --background: #F8FAFC;
+    --surface: #FFFFFF;
+    --border: #E2E8F0;
+    --foreground: #0F172A;
+    --muted-foreground: #64748B;
+  }
+
+  [data-theme="dark"] {
+    --background: #0B1220;
+    --surface: #111827;
+    --border: #1F2937;
+    --foreground: #F1F5F9;
+    --muted-foreground: #94A3B8;
+    --primary: #3B82F6;
+    --primary-foreground: #0B1220;
+  }
+
+  * {
+    @apply border-[var(--border)];
+  }
+
+  body {
+    @apply bg-[var(--background)] text-[var(--foreground)] antialiased;
+  }
 }
 
 @layer utilities {

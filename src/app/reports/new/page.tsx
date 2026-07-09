@@ -2,22 +2,43 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ArrowRight, MapPin, Building2, FileText, Upload, X, Check } from "lucide-react";
 import Link from "next/link";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardFooter } from "@/components/ui/Card";
+import { useSession } from "@/context/SessionContext";
 
 const categories = [
-  "INFRASTRUCTURE",
-  "HEALTH",
-  "EDUCATION",
-  "SANITATION",
-  "TRANSPORTATION",
-  "OTHER",
+  { id: "INFRASTRUCTURE", name: "Infrastructure", icon: <MapPin className="h-6 w-6" /> },
+  { id: "PUBLIC_SAFETY", name: "Public Safety", icon: <FileText className="h-6 w-6" /> },
+  { id: "ENVIRONMENT", name: "Environment", icon: <FileText className="h-6 w-6" /> },
+  { id: "TRANSPORTATION", name: "Transportation", icon: <FileText className="h-6 w-6" /> },
+  { id: "HEALTH", name: "Health", icon: <FileText className="h-6 w-6" /> },
+  { id: "EDUCATION", name: "Education", icon: <FileText className="h-6 w-6" /> },
+  { id: "OTHER", name: "Other", icon: <FileText className="h-6 w-6" /> },
 ];
 
-const priorities = ["LOW", "MEDIUM", "HIGH", "CRITICAL"];
+const priorities = [
+  { id: "LOW", name: "Low", color: "bg-status-submitted/10 text-status-submitted" },
+  { id: "MEDIUM", name: "Medium", color: "bg-status-assigned/10 text-status-assigned" },
+  { id: "HIGH", name: "High", color: "bg-status-rejected/10 text-status-rejected" },
+  { id: "CRITICAL", name: "Critical", color: "bg-status-rejected text-white" },
+];
+
+const steps = [
+  { id: 1, title: "Basic Info", description: "Describe the issue" },
+  { id: 2, title: "Category", description: "Choose category" },
+  { id: 3, title: "Priority", description: "Set urgency level" },
+  { id: 4, title: "Location", description: "Add location details" },
+  { id: 5, title: "Attachments", description: "Add photos" },
+];
 
 export default function NewReportPage() {
   const router = useRouter();
+  const { user } = useSession();
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -33,6 +54,42 @@ export default function NewReportPage() {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [files, setFiles] = useState<File[]>([]);
+  const [locationLoading, setLocationLoading] = useState(false);
+
+  const handleGetLocation = () => {
+    if (!navigator.geolocation) {
+      setError("Geolocation is not supported by your browser");
+      return;
+    }
+
+    setLocationLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setFormData((prev) => ({
+          ...prev,
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        }));
+        setLocationLoading(false);
+      },
+      (error) => {
+        setError("Unable to retrieve your location. Please enter it manually.");
+        setLocationLoading(false);
+      }
+    );
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const selectedFiles = Array.from(e.target.files);
+      setFiles((prev) => [...prev, ...selectedFiles]);
+    }
+  };
+
+  const handleRemoveFile = (index: number) => {
+    setFiles((prev) => prev.filter((_, i) => i !== index));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,16 +97,32 @@ export default function NewReportPage() {
     setError("");
 
     try {
-      // For demo purposes, use a dummy citizen ID
-      const citizenId = "demo-citizen-id";
+      if (!user) {
+        setError("You must be logged in to submit a report");
+        return;
+      }
+
+      const formDataToSend = new FormData();
+      formDataToSend.append("title", formData.title);
+      formDataToSend.append("description", formData.description);
+      formDataToSend.append("category", formData.category);
+      formDataToSend.append("priority", formData.priority);
+      formDataToSend.append("latitude", formData.latitude.toString());
+      formDataToSend.append("longitude", formData.longitude.toString());
+      formDataToSend.append("address", formData.address);
+      formDataToSend.append("district", formData.district);
+      formDataToSend.append("city", formData.city);
+      formDataToSend.append("province", formData.province);
+      formDataToSend.append("postalCode", formData.postalCode);
+      formDataToSend.append("citizenId", user.id);
+
+      files.forEach((file) => {
+        formDataToSend.append("files", file);
+      });
 
       const response = await fetch("/api/v1/reports", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...formData,
-          citizenId,
-        }),
+        body: formDataToSend,
       });
 
       if (response.ok) {
@@ -132,8 +205,8 @@ export default function NewReportPage() {
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   {categories.map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat.charAt(0) + cat.slice(1).toLowerCase().replace("_", " ")}
+                    <option key={cat.id} value={cat.id}>
+                      {cat.name}
                     </option>
                   ))}
                 </select>
@@ -148,8 +221,8 @@ export default function NewReportPage() {
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   {priorities.map((prio) => (
-                    <option key={prio} value={prio}>
-                      {prio.charAt(0) + prio.slice(1).toLowerCase()}
+                    <option key={prio.id} value={prio.id}>
+                      {prio.name}
                     </option>
                   ))}
                 </select>
@@ -159,7 +232,18 @@ export default function NewReportPage() {
 
           {/* Location Information */}
           <div className="pt-6 border-t border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Location</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Location</h3>
+              <button
+                type="button"
+                onClick={handleGetLocation}
+                disabled={locationLoading}
+                className="flex items-center gap-2 px-4 py-2 text-sm bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors disabled:opacity-50"
+              >
+                <MapPin className="h-4 w-4" />
+                {locationLoading ? "Getting Location..." : "Use My Location"}
+              </button>
+            </div>
             <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
@@ -254,6 +338,57 @@ export default function NewReportPage() {
             </div>
           </div>
 
+          {/* File Upload */}
+          <div className="pt-6 border-t border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Attachments</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Upload Photos/Documents
+                </label>
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*,.pdf,.doc,.docx"
+                  onChange={handleFileChange}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Supported formats: JPG, PNG, PDF, DOC, DOCX (Max 10MB per file)
+                </p>
+              </div>
+
+              {files.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-gray-700">
+                    Selected Files ({files.length})
+                  </p>
+                  {files.map((file, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                    >
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-gray-500" />
+                        <span className="text-sm text-gray-700">{file.name}</span>
+                        <span className="text-xs text-gray-500">
+                          ({(file.size / 1024 / 1024).toFixed(2)} MB)
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveFile(index)}
+                        className="text-red-500 hover:text-red-700"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* Submit Button */}
           <div className="flex gap-4 pt-6">
             <Link
@@ -275,3 +410,9 @@ export default function NewReportPage() {
     </div>
   );
 }
+
+
+
+
+
+

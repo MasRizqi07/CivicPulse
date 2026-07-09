@@ -41,6 +41,7 @@ export default function ReportDetailPage() {
   const [loading, setLoading] = useState(true);
   const [comment, setComment] = useState("");
   const [submittingComment, setSubmittingComment] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   useEffect(() => {
     if (params.id) {
@@ -48,11 +49,23 @@ export default function ReportDetailPage() {
     }
   }, [params.id]);
 
+  // Poll for updates every 30 seconds
+  useEffect(() => {
+    if (!params.id) return;
+
+    const interval = setInterval(() => {
+      fetchReport();
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(interval);
+  }, [params.id]);
+
   const fetchReport = async () => {
     try {
       const response = await fetch(`/api/v1/reports/${params.id}`);
       const data = await response.json();
       setReport(data.data);
+      setLastUpdated(new Date());
     } catch (error) {
       console.error("Failed to fetch report:", error);
     } finally {

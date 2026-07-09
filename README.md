@@ -71,7 +71,7 @@ Before you begin, ensure you have these installed:
 
 - **Node.js**: v20 or later
 - **PostgreSQL**: v16 or later
-- **Redis**: v7 or later
+- **Redis**: v7 or later (required at runtime for rate limiting and background jobs)
 - **npm**: v10 or later
 
 ### Installation
@@ -102,7 +102,7 @@ Before you begin, ensure you have these installed:
      # Database
      DATABASE_URL="postgresql://postgres:your-password@localhost:5432/civicpulse?schema=public"
 
-     # Redis
+     # Redis (required at runtime for rate limiting and background jobs)
      REDIS_URL="redis://localhost:6379"
 
      # Better Auth

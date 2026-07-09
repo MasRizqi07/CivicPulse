@@ -1,4 +1,4 @@
-import redis from "./cache";
+import redis, { checkRedisConnection } from "./cache";
 
 interface RateLimitConfig {
   limit: number;
@@ -21,6 +21,9 @@ export async function checkRateLimit(
   identifier: string,
   type: keyof typeof rateLimits
 ): Promise<RateLimitResult> {
+  // Check Redis connection before rate limiting
+  await checkRedisConnection();
+
   const config = rateLimits[type];
   const key = `ratelimit:${type}:${identifier}`;
 

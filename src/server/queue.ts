@@ -1,5 +1,5 @@
 import { Queue, Worker, Job } from "bullmq";
-import redis from "./cache";
+import redis, { checkRedisConnection } from "./cache";
 import logger from "@/lib/logger";
 import { auditLogRepository } from "@/modules/audit-logs/repositories/audit-log.repository";
 
@@ -22,7 +22,9 @@ export const auditLogQueue = new Queue(AUDIT_LOG_QUEUE, {
 });
 
 // Worker functions
-const setupWorkers = () => {
+const setupWorkers = async () => {
+  // Check Redis connection before initializing workers
+  await checkRedisConnection();
   // Notification worker
   new Worker(
     NOTIFICATION_QUEUE,

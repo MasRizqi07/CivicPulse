@@ -24,7 +24,7 @@
     "@aws-sdk/s3-request-presigner": "^3.1075.0",
     "@hookform/resolvers": "^5.4.0",
     "@prisma/client": "^6.5.0",
-    "@sentry/nextjs": "^9.9.0",
+    "@sentry/nextjs": "^10.64.0",
     "@tanstack/react-query": "^5.101.1",
     "better-auth": "^1.6.20",
     "bullmq": "^5.45.0",
